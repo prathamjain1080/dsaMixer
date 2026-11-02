@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+dsamixer.db
+.env
+logs/
+.DS_Store
+# course material and personal homework stay local
+homework/*
+!homework/README.md
+data/*.pdf
+# your personal config from /setup or config import
+config.local.json

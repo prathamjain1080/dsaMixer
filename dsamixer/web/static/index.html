@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>dsaMixer</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%235e6ad2'/%3E%3Ctext x='16' y='22' font-size='16' font-weight='700' text-anchor='middle' fill='white' font-family='sans-serif'%3Ed%3C/text%3E%3C/svg%3E">
+  <script>
+    // Apply the saved theme and sidebar state before first paint. ?theme=dark|light overrides for this page load only.
+    (function () {
+      var t = null, c = null;
+      try { t = new URLSearchParams(location.search).get("theme") || localStorage.getItem("theme"); c = localStorage.getItem("dsm.sidebar"); } catch (e) {}
+      if (t === "dark" || t === "light") document.documentElement.dataset.theme = t;
+      if (c === "collapsed" && innerWidth >= 768) document.documentElement.classList.add("pre-collapsed");
+    })();
+  </script>
+  <link rel="stylesheet" href="/static/css/tokens.css">
+  <link rel="stylesheet" href="/static/css/base.css">
+  <link rel="stylesheet" href="/static/css/components.css">
+  <link rel="stylesheet" href="/static/css/views.css">
+</head>
+<body>
+  <div class="app" id="app">
+    <aside class="sidebar" id="sidebar" aria-label="Sidebar">
+      <div class="sb-top">
+        <a class="brand" href="#/today" aria-label="dsaMixer home"><span class="logo" aria-hidden="true">d</span><span class="brand-word">dsaMixer</span></a>
+        <button type="button" class="btn btn-ghost btn-sm btn-icon sb-collapse-btn" id="sbCollapse" aria-label="Collapse sidebar" data-tip="Collapse sidebar  ["></button>
+      </div>
+      <button type="button" class="sb-search" id="sbSearch" aria-label="Search and commands"><span class="sb-icon" data-icon="search"></span><span class="sb-label">Search</span><kbd>⌘K</kbd></button>
+      <nav class="sb-nav" id="nav" aria-label="Main">
+        <a class="sb-item" href="#/today" data-route="today"><span data-icon="today"></span><span class="sb-label">Today</span><kbd class="sb-kbd">1</kbd></a>
+        <a class="sb-item" href="#/week" data-route="week"><span data-icon="week"></span><span class="sb-label">Week</span><kbd class="sb-kbd">2</kbd></a>
+        <a class="sb-item" href="#/sprint" data-route="sprint"><span data-icon="sprint"></span><span class="sb-label">Sprint</span><kbd class="sb-kbd">3</kbd></a>
+        <a class="sb-item" href="#/stats" data-route="stats"><span data-icon="stats"></span><span class="sb-label">Stats</span><kbd class="sb-kbd">4</kbd></a>
+        <div class="sb-group">Practice</div><div class="sb-group-gap"></div>
+        <a class="sb-item" href="#/questions" data-route="questions"><span data-icon="list"></span><span class="sb-label">Questions</span><kbd class="sb-kbd">6</kbd></a>
+        <a class="sb-item" href="#/contests" data-route="contests"><span data-icon="trophy"></span><span class="sb-label">Contests</span><kbd class="sb-kbd">5</kbd></a>
+        <div class="sb-group" data-course>Course</div><div class="sb-group-gap" data-course></div>
+        <a class="sb-item" href="#/ai" data-route="ai" data-course><span data-icon="sparkle"></span><span class="sb-label">AI course</span><kbd class="sb-kbd">7</kbd></a>
+      </nav>
+      <div class="sb-bottom">
+        <a class="sb-item" href="#/settings" data-route="settings"><span data-icon="gear"></span><span class="sb-label">Settings</span><kbd class="sb-kbd">8</kbd></a>
+        <button type="button" id="timerPill" class="timer-pill" hidden><span class="tp-dot" aria-hidden="true"></span><span class="tp-clock" id="timerClock"></span><span class="tp-title" id="timerTitle"></span></button>
+        <div class="sb-row">
+          <span id="streak" class="streak" data-tip="Consecutive days with at least one card done"><span data-icon="flame"></span><b id="streakN">–</b><span class="streak-word" id="streakWord">days</span></span>
+          <span class="sp"></span>
+          <button type="button" class="btn btn-ghost btn-sm btn-icon" id="helpBtn" aria-label="Keyboard shortcuts" data-tip="Keyboard shortcuts  ?"></button>
+          <button type="button" class="btn btn-ghost btn-sm btn-icon" id="themeBtn" aria-label="Toggle dark mode" data-tip="Toggle theme"></button>
+        </div>
+      </div>
+    </aside>
+    <div class="sb-scrim" id="scrim"></div>
+    <div class="main-col">
+      <header class="topbar">
+        <button type="button" class="btn btn-ghost btn-md btn-icon menu-btn" id="menuBtn" aria-label="Open navigation"></button>
+        <div class="crumbs" id="crumbs"></div>
+        <span class="tb-sp"></span>
+        <button type="button" class="search-btn" id="searchBtn" aria-label="Search and commands"><span data-icon="search"></span><span>Search or jump to…</span><kbd>⌘K</kbd></button>
+      </header>
+      <main id="view"></main>
+    </div>
+  </div>
+  <div id="tooltip" class="tooltip" role="tooltip" hidden></div>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+  <script type="module" src="/static/js/main.js"></script>
+</body>
+</html>
