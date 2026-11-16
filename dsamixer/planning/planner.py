@@ -100,7 +100,7 @@ def contest_for(cfg, day: str, conn=None):
             return ("Virtual Weekly (after class)", "Do this week's Weekly as a virtual contest.", False)
     if wd == "sat" and wk >= c["biweekly_live_from_week"]:
         bi = _cached_contest(conn, "biweekly", day)
-        if bi:  # a cache entry beats the anchor arithmetic; LIVE stays in the title for carry-over
+        if bi:  # a cache entry beats the anchor arithmetic
             return (f"{bi['title']} — LIVE {bi['time']} IST", "Rated.", True)
         if (d(day) - d(c["biweekly_anchor"])).days % 14 == 0:
             return ("LeetCode Biweekly — LIVE 8:00 PM IST", "Rated.", True)
@@ -120,7 +120,7 @@ def _carry_over(conn, day, sprint):
     for t in stale:
         if rest and t["kind"] in ("dsa", "review"):
             continue  # stays put; the next weekday carries it
-        if t["kind"] == "contest" and "LIVE" in t["title"]:
+        if t["kind"] == "contest":
             conn.execute("UPDATE tickets SET status='skipped', note=COALESCE(note,'missed') WHERE id=?", (t["id"],))
             continue
         pos = conn.execute("SELECT COALESCE(MAX(position),0)+1 FROM tickets WHERE date=?", (day,)).fetchone()[0]
@@ -297,8 +297,11 @@ def plan_day(conn, day: str, force=False) -> None:
 
     contest = contest_for(cfg, day, conn)
     module = current_ai_module(conn)
+    suppressed_ai = db.get_setting(conn, "ai_balance_suppressed", {}).get(day, [])
     for item in [] if has_ai_plan(conn, day) else config.ai_template(cfg).get(wd, []):
         title = item["title"]
+        if title in suppressed_ai:
+            continue
         if contest and contest[2] and wd == "sun" and "class" in title.lower():
             title += " (recording — contest clash)"
         if title not in existing:

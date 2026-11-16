@@ -22,7 +22,7 @@ const DEFS = [
 let S = null;
 
 export async function render(root) {
-  root.innerHTML = Toolbar({ title: "Stats", sub: "Everything you've logged, at a glance", actions: `<span id="dashCtl" class="btn-row"></span>` }) + `<div id="dash"></div>`;
+  root.innerHTML = Toolbar({ title: "Stats", sub: "Practice, retention, and progress over time", actions: `<span id="dashCtl" class="btn-row"></span>` }) + `<div id="dash"></div>`;
   S = { data: null };
   const [s, contests, lc] = await Promise.all([api("/stats"), api("/contests"), loadProfile().catch(() => null)]);
   S.data = { s, contests, lc };
@@ -64,7 +64,7 @@ function paint() {
     : EmptyState({ icon: "check", title: "Nothing logged yet", hint: "Log a few questions to see this.", compact: true })}</div>
     <div><h3 class="w-h3">Weakest patterns</h3>${s.weak_patterns.length
     ? `<div class="hbars">${s.weak_patterns.map((w) => HBar(esc(w.subtopic), w.avg_conf, 5, { color: "var(--k-review)", suffix: `${w.avg_conf}<span class="faint">/5</span>` })).join("")}</div>`
-    : EmptyState({ icon: "sparkle", title: "No weak spots yet", hint: "Needs at least 2 logged questions in a pattern.", compact: true })}</div></div>`);
+    : EmptyState({ icon: "search", title: "No weak spots yet", hint: "Needs at least 2 logged questions in a pattern.", compact: true })}</div></div>`);
 
   set("topics", `<div class="grid-bars">${s.by_section.map((r) => HBar(esc(r.section), r.done || 0, r.total)).join("")}</div>`);
 }

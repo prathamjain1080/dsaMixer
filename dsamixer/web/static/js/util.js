@@ -3,6 +3,10 @@
 export const $ = (s, el = document) => el.querySelector(s);
 export const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 export const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+export function questionTitle(title) {
+  const match = String(title ?? "").match(/^(Q\d+\.)\s+(.+)$/s);
+  return match ? `<span class="question-ref">${esc(match[1])}</span> ${esc(match[2])}` : esc(title);
+}
 
 export const iso = (d) => new Date(d.getTime() - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10);
 export const today = () => iso(new Date());

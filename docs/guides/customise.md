@@ -63,6 +63,14 @@ How the week is laid out: planning any weekday puts the new-question mix for eve
 
 A weekly AI plan (the AI course tab or the homework agents) replaces the generic cards on the days it covers.
 
+### Balance an overloaded AI week
+
+Open **Week → Balance AI week**. Set the AI quota in minutes for each remaining day, including Saturday and Sunday, then click **Preview balance**. The panel shows before/after totals, remaining overload, and each proposed card move. **Apply balance** saves those quotas for these dates and moves the cards together. Cancel leaves the board unchanged. No AI API call or key is needed.
+
+Only unstarted AI cards on days exceeding their quota enter the movable pool, including rolled-over and newly created cards. Days within quota retain their existing cards, but can receive overflow. Classes, started work, completed/skipped cards, past days and closed days stay fixed. Future template work reserves capacity even before its cards appear. Whole cards are placed by estimated minutes, balancing quota utilization; they aren't split or checked for homework dependencies. Review the proposed order before applying. With insufficient capacity, the preview reports the remaining overload. A zero-minute quota prevents that day receiving work.
+
+Week meters use the saved date-specific quotas; the recurring course template stays configured as before. Moved template cards aren't recreated on their original date. If the board changes after previewing, Apply requests a fresh preview. This is a manual action; closing a day still uses the normal carry-over rules, so balance again when needed.
+
 ### AI planner (`ai_planner`)
 
 | Key | Default | What it does |
@@ -134,3 +142,9 @@ Save any of these as a file (for example `config.local.json`) and run `./run.sh 
 ## Where things are stored
 
 Your config is one JSON value in the `settings` table (key `config`). LeetCode data is cached in more `settings` keys: `leetcode_profile`, `leetcode_suggestions`, `leetcode_dismissed`, `leetcode_friends_cache` and the contest schedule (`leetcode_contests`, `leetcode_synced_at`). Setup progress is two more keys: `setup_done` and `setup` (which records the day you first set up). The defaults live in `dsamixer/core/config.py`.
+
+## Time estimates and daily goals
+
+In **Settings**, enable **Show time estimates and daily goals** and save to display ticket estimates, planned-time totals, and daily budget controls and meters. This is off by default (`time_planning_enabled: false`). The display updates immediately; no replan is needed.
+
+When disabled, timers, actual time logging, and historical time charts remain available. Saved estimates and budgets are preserved, and planning continues to use them internally. Re-enable the toggle to edit them again. The advanced JSON editor always exposes the full configuration.

@@ -16,7 +16,7 @@ const VIEWS = {
 };
 const META = {
   today: ["Today", "today", "Workspace"], week: ["Week", "week", "Workspace"], sprint: ["Sprint", "sprint", "Workspace"], stats: ["Stats", "stats", "Workspace"],
-  questions: ["Questions", "list", "Practice"], contests: ["Contests", "trophy", "Practice"], ai: ["AI course", "sparkle", "Course"], settings: ["Settings", "gear", "Workspace"],
+  questions: ["Questions", "list", "Practice"], contests: ["Contests", "trophy", "Practice"], ai: ["AI course", "book", "Course"], settings: ["Settings", "gear", "Workspace"],
 };
 const ALIAS = { board: "today" }; // old hash names
 
@@ -42,7 +42,12 @@ async function route() {
   const mod = await VIEWS[name]();
   if (mine !== token) return;
   root.className = "view-enter";
-  try { await mod.render(root, arg); current = mod; currentName = name; }
+  root.dataset.view = name;
+  try {
+    await api("/settings");
+    if (mine !== token) return;
+    await mod.render(root, arg); current = mod; currentName = name;
+  }
   catch (e) { console.error(e); root.innerHTML = `<div class="banner warn">${icon("alert")}<span>Couldn't load this view: ${String(e.message || e)}</span></div>`; }
   window.scrollTo(0, 0);
 }
@@ -160,6 +165,7 @@ $("#searchBtn").onclick = openPalette;
 $("#sbSearch").onclick = openPalette;
 window.addEventListener("hashchange", route);
 try {
+  await api("/settings");
   const setup = await api("/setup");
   if (setup.needed) await runWizard(setup.defaults);
 } catch { /* the board still loads; Settings can re-run setup */ }

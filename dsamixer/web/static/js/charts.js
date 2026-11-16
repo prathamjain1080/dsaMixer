@@ -5,7 +5,10 @@ import { bindTips } from "./ui.js";
 import { EmptyState } from "./components/index.js";
 
 function mount(el, draw) {
-  const run = () => { el._w = el.clientWidth; draw(Math.max(el.clientWidth, 240)); };
+  const run = () => {
+    el._w = el.clientWidth;
+    if (el._w) draw(el._w);
+  };
   run();
   if (!el._ro && typeof ResizeObserver !== "undefined") {
     el._ro = new ResizeObserver(debounce(() => { if (Math.abs(el.clientWidth - (el._w || 0)) > 2) run(); }, 100));
@@ -29,7 +32,7 @@ export function heatmap(el, all, { weeks = 26, mini = false } = {}) {
     const gap = mini ? 3 : 4, LW = mini ? 16 : 30, TH = 18;
     const offset = (new Date(days[0].date + "T00:00:00").getDay() + 6) % 7;
     const cols = Math.ceil((offset + days.length) / 7);
-    const cw = Math.max(8, (W - LW + gap) / cols - gap), ch = Math.min(cw, mini ? 14 : 22);
+    const cw = Math.max(4, (W - LW + gap) / cols - gap), ch = Math.min(cw, mini ? 14 : 22);
     const w = W, h = TH + 7 * (ch + gap) - gap;
     const max = Math.max(1, ...days.map((d) => d.done));
     const level = (n) => (n ? Math.max(1, Math.ceil((n / max) * 5)) : 0);

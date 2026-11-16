@@ -16,8 +16,12 @@ export async function render(root, arg) {
   root.innerHTML = Toolbar({ title: "Settings", sub: "Saved settings apply from the next planned day, or replan today to use them now" }) + `
     <div class="settings">
       ${Widget({ id: "setMain", span: 12, body:
+        section("Time estimates and daily goals", "Show ticket estimates and daily time budgets. Timers and time spent stay available. Your saved estimates and budgets are preserved and still used for planning.", `<label class="check"><input type="checkbox" id="timePlanning"> Show time estimates and daily goals</label>`) +
+        `<div id="timePlanningControls">` +
         section("Daily DSA budget", "Minutes of DSA per weekday. Sunday is the buffer day.", `<div class="form-grid days" id="budgetInputs"></div>`) +
-        section("Estimates", "Minutes per question by difficulty, per review, and the daily review cap.", `<div class="form-grid" id="estInputs"></div>`) +
+        section("Estimates", "Minutes per question by difficulty and per review.", `<div class="form-grid" id="estInputs"></div>`) +
+        `</div>` +
+        section("Reviews", "Limit the number of reviews planned each day.", `<label class="field"><span class="f-label">Max reviews/day</span><input type="number" min="0" id="maxReviews"></label>`) +
         section("Contests", "Live contests clash with Sunday class; the class card becomes a recording.", `
           <label class="check"><input type="checkbox" id="weeklyLive"> Do Sunday's Weekly contest live (watch the class recording after)</label>
           <label class="field"><span class="f-label">Biweekly anchor Saturday</span><input type="date" id="biweeklyAnchor" class="fit"><span class="f-hint">Pick any Saturday that has a Biweekly contest (check leetcode.com/contest).</span></label>`) +
@@ -41,6 +45,7 @@ export async function render(root, arg) {
       ${Button({ label: "Save changes", kind: "primary", id: "saveSettings", icon: "check" })}
     </div>`;
   $("#saveSettings").onclick = save;
+  $("#timePlanning").onchange = () => { $("#timePlanningControls").hidden = !$("#timePlanning").checked; dirty(true); };
   $("#badgeSeg").addEventListener("change", () => {
     const b = $("input[name=badge]:checked").value;
     if (BADGE_PRESET[b]) $("#badgeRating").value = BADGE_PRESET[b];
@@ -76,9 +81,12 @@ function dirty(on) {
 
 async function load() {
   const c = cfg = await api("/settings");
+  $("#timePlanning").checked = c.time_planning_enabled === true;
+  $("#timePlanningControls").hidden = !$("#timePlanning").checked;
+  $("#maxReviews").value = c.max_reviews_per_day;
   $("#budgetInputs").innerHTML = DAYS.map((d) => `<label class="field"><span class="f-label">${DAY_LABEL[d]}</span><input type="number" min="0" step="15" data-budget="${d}" value="${c.dsa_minutes[d]}"></label>`).join("");
   $("#estInputs").innerHTML = ["Easy", "Medium", "Hard"].map((d) => `<label class="field"><span class="f-label">${d}</span><input type="number" min="5" step="5" data-est="${d}" value="${c.est_minutes[d]}"></label>`).join("") +
-    `<label class="field"><span class="f-label">Review</span><input type="number" min="5" step="5" id="reviewMin" value="${c.review_minutes}"></label><label class="field"><span class="f-label">Max reviews/day</span><input type="number" min="0" id="maxReviews" value="${c.max_reviews_per_day}"></label>`;
+    `<label class="field"><span class="f-label">Review</span><input type="number" min="5" step="5" id="reviewMin" value="${c.review_minutes}"></label>`;
   $("#weeklyLive").checked = c.contests.weekly_live;
   $("#biweeklyAnchor").value = c.contests.biweekly_anchor;
   $("#lcUser").value = c.leetcode?.username || "";
@@ -93,6 +101,7 @@ async function load() {
 
 async function save() {
   const c = cfg;
+  c.time_planning_enabled = $("#timePlanning").checked;
   $$("[data-budget]").forEach((i) => (c.dsa_minutes[i.dataset.budget] = +i.value));
   $$("[data-est]").forEach((i) => (c.est_minutes[i.dataset.est] = +i.value));
   c.review_minutes = +$("#reviewMin").value;
@@ -105,7 +114,7 @@ async function save() {
   if (!(rating >= 800)) return toast("Enter a target rating of 800 or more.");
   c.knight = { ...c.knight, badge: $("input[name=badge]:checked").value, target_rating: rating, deadline: $("#badgeDeadline").value || null };
   await api("/settings", { method: "PUT", body: c });
-  toast("Saved — applies from the next planned day (or hit Replan today)");
+  toast("Saved — display preferences apply now; planning settings apply to future plans");
   load();
   if (user && user !== before) {
     api("/leetcode/sync", { method: "POST" }).then((r) => {

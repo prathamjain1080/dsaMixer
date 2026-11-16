@@ -6,7 +6,7 @@ import { DiffPill } from "./components/index.js";
 
 const NAV = [
   ["today", "Today", "today"], ["week", "Week", "week"], ["sprint", "Sprint", "sprint"], ["stats", "Stats", "stats"],
-  ["questions", "Questions", "list"], ["contests", "Contests", "trophy"], ["ai", "AI course", "sparkle"], ["settings", "Settings", "gear"],
+  ["questions", "Questions", "list"], ["contests", "Contests", "trophy"], ["ai", "AI course", "book"], ["settings", "Settings", "gear"],
 ];
 
 let questions = null;

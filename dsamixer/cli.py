@@ -23,6 +23,8 @@
 
   db info                  which database is in use (Postgres via DATABASE_URL, or SQLite) + row counts
   db copy-from-sqlite [FILE] --yes   replace ALL Postgres data with a SQLite file (default dsamixer.db)
+  db up / db down          start / stop a local Homebrew Postgres on demand (no start at login);
+                           `serve` runs `db up` itself when DATABASE_URL points at this machine
 
 Used by the homework agents (all print JSON):
   homework week [N]                   dates, deadline, plan days and AI capacity for COURSE week N
@@ -106,6 +108,70 @@ def _board_running(port: int = 8765) -> bool:
         return False
 
 
+def _local_pg():
+    """(host, port) when DATABASE_URL points at a Postgres on this machine, else None."""
+    from urllib.parse import urlsplit
+    db.load_env()
+    url = os.environ.get("DATABASE_URL")
+    if not url or os.environ.get("DSAMIXER_DB"):
+        return None
+    u = urlsplit(url)
+    host = u.hostname or "localhost"
+    return (host, u.port or 5432) if host in ("localhost", "127.0.0.1", "::1") else None
+
+
+def _pg_ready(host, port) -> bool:
+    import socket
+    try:
+        socket.create_connection((host, port), timeout=1).close()
+        return True
+    except OSError:
+        return False
+
+
+def _pg_formula():
+    """The Homebrew Postgres to manage: DSAMIXER_PG_FORMULA, else the newest postgresql@N installed."""
+    if os.environ.get("DSAMIXER_PG_FORMULA"):
+        return os.environ["DSAMIXER_PG_FORMULA"]
+    if not shutil.which("brew"):
+        return None
+    names = subprocess.run(["brew", "list", "--formula"], capture_output=True, text=True).stdout.split()
+    pg = [n for n in names if n.startswith("postgresql@") and n.split("@")[1].isdigit()]
+    return max(pg, key=lambda n: int(n.split("@")[1])) if pg else None
+
+
+def db_up(quiet=False) -> bool:
+    target = _local_pg()
+    if not target:
+        raise SystemExit("DATABASE_URL isn't set to a Postgres on this machine; nothing to start.")
+    if _pg_ready(*target):
+        quiet or print(f"Postgres is already running on {target[1]}.")
+        return True
+    formula = _pg_formula()
+    if not formula:
+        raise SystemExit("No Homebrew postgresql@N found. Start your Postgres yourself "
+                         "(or set DSAMIXER_PG_FORMULA).")
+    # `brew services run` starts it now without registering it to start at login.
+    print(f"Starting {formula}...")
+    subprocess.run(["brew", "services", "run", formula], capture_output=True, text=True)
+    for _ in range(40):
+        if _pg_ready(*target):
+            print(f"{formula} is up on port {target[1]}.")
+            return True
+        import time
+        time.sleep(0.25)
+    raise SystemExit(f"{formula} didn't come up on port {target[1]}. "
+                     f"Check `brew services info {formula}` and its log in $(brew --prefix)/var/log/.")
+
+
+def db_down() -> None:
+    formula = _pg_formula()
+    if not formula:
+        raise SystemExit("No Homebrew postgresql@N found; stop your Postgres yourself.")
+    subprocess.run(["brew", "services", "stop", formula], capture_output=True, text=True)
+    print(f"Stopped {formula} (it won't start at login).")
+
+
 def setup_status() -> dict:
     """Machine and setup state for /setup. Works before setup and without a .env; prints no secret."""
     db.load_env()
@@ -154,6 +220,8 @@ def main() -> None:
     pw.add_argument("--dry-run", action="store_true")
     dbp = sub.add_parser("db").add_subparsers(dest="dbcmd", required=True)
     dbp.add_parser("info")
+    dbp.add_parser("up")
+    dbp.add_parser("down")
     dc = dbp.add_parser("copy-from-sqlite")
     dc.add_argument("file", nargs="?", default=str(db.ROOT / "dsamixer.db"))
     dc.add_argument("--yes", action="store_true", help="confirm: wipes the Postgres tables first")
@@ -194,7 +262,13 @@ def main() -> None:
     tu.add_argument("--minutes-spent", type=int)
     args = ap.parse_args()
 
+    if args.cmd == "db" and args.dbcmd in ("up", "down"):
+        db_up() if args.dbcmd == "up" else db_down()
+        return
     if args.cmd == "serve":
+        target = _local_pg()
+        if target and not _pg_ready(*target) and _pg_formula():
+            db_up(quiet=True)
         import uvicorn
         uvicorn.run("dsamixer.web.server:app", host=args.host, port=args.port)
         return

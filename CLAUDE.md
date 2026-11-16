@@ -24,6 +24,7 @@ You log each day in the evening ("Close day"), and the app then plans the next d
 ./run.sh leetcode sync           # your profile (leetcode.username): rating, auto-logged contests, solved suggestions
 ./run.sh leetcode profile USER   # any user's profile as JSON, nothing stored
 ./run.sh db info                 # which database is in use, with row counts
+./run.sh db up | db down         # start/stop a local Homebrew Postgres on demand (`brew services run/stop`, newest postgresql@N or DSAMIXER_PG_FORMULA); `serve` runs `db up` itself when DATABASE_URL is local
 ./run.sh setup status            # JSON: setup_done, backend, env_file, integrations (true/false), python, os, board_running
 ./run.sh config import FILE      # merge a full or partial config JSON over the current config; marks setup done
 ./run.sh config export [FILE]    # the effective config as JSON
@@ -65,7 +66,7 @@ Imports go one way: `core` ← `planning` ← `integrations` ← `web`/`cli`. Do
 
 Planning is idempotent: a day is planned once (`days.planned_at`). Today is planned when it's viewed, and tomorrow when today is closed. The steps, in order:
 
-1. **Carry-over.** Every todo/doing card from earlier days moves to this day, and `carried` goes up by 1. A missed LIVE contest becomes `skipped` instead. On a rest day (`dsa_rest_days`, default Sat+Sun) `dsa` and `review` cards aren't moved; they wait for the next weekday.
+1. **Carry-over.** Every todo/doing card from earlier days moves to this day, and `carried` goes up by 1. Missed contest cards (live or virtual) stay on their scheduled date and become `skipped` instead. Upsolve cards still carry forward. On a rest day (`dsa_rest_days`, default Sat+Sun) `dsa` and `review` cards aren't moved; they wait for the next weekday.
 2. **AI cards** come from `cfg.ai_template` for that weekday, unless an `ai_week_plans` row covers the day. In that case the planned tasks (weekly planner or homework agent) replace the generic cards. The Sat/Sun class cards always come from the template.
 3. **Contests** are laid out for the whole week up front, the same way the DSA mix is: `plan_week_contests` runs right after `plan_week_dsa` and puts a contest card on every day from this date to Sunday that should have one (at most one per day; `_has_contest_card` skips days that already have one), so the Week view shows them before those days are planned. Which contest:
    - Weeks 1 to `virtual_until_week` (default 4): a virtual contest on Sunday.
@@ -176,6 +177,8 @@ The agent files pin these models; change them if you prefer others.
 - This is about Claude Code only. The in-app "Break down with AI" button uses `OPENROUTER_MODEL` from `.env`.
 
 ## Conventions for changing code
+
+- AI week balancing lives in `planning/ai_balance.py` and `web/static/js/ai-balance.js`, opened from Week. `POST /api/week/{day}/ai-balance/preview` is read-only; `/apply` validates the preview fingerprint and commits moves atomically. Date-specific quotas and moved template titles live in settings `ai_balance_quotas` and `ai_balance_suppressed`. Week meters read the quotas; `plan_day` skips suppressed template titles. Tests: `.venv/bin/python -m unittest discover -s tests -v` (in-memory SQLite only).
 
 - Match the existing style: small modules, raw SQL with `db.rows()`, no ORM, vanilla JS (no frameworks or build step), comments only where the reason isn't obvious.
 - **Write SQL once, in SQLite style,** and keep it portable to Postgres: `?` placeholders, `datetime('now','localtime')` (both translated by `PgConn`), `ON CONFLICT ... DO UPDATE/NOTHING` (not `INSERT OR IGNORE`), `RETURNING id` (not `lastrowid`), `SUM(CASE WHEN ... THEN 1 ELSE 0 END)` (not summed booleans), `AS` on every alias, and no aliases in `HAVING`. Postgres returns `ROUND`/`AVG` results as `Decimal`.

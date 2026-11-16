@@ -80,7 +80,7 @@ export function paintSuggestionsBanner(el, data, onChange) {
   if (!el) return;
   const n = data.suggestions?.length || 0;
   if (!n) { el.innerHTML = ""; return; }
-  el.innerHTML = `<div class="banner info t-banner lc-banner">${icon("sparkle")}<span><b>${n} question${n > 1 ? "s" : ""}</b> you solved recently on LeetCode match${n > 1 ? "" : "es"} your list.</span>${Button({ label: "Review", iconRight: "right", size: "sm", cls: "lc-review" })}</div>`;
+  el.innerHTML = `<div class="banner info t-banner lc-banner">${icon("check")}<span><b>${n} question${n > 1 ? "s" : ""}</b> you solved recently on LeetCode match${n > 1 ? "" : "es"} your list.</span>${Button({ label: "Review", iconRight: "right", size: "sm", cls: "lc-review" })}</div>`;
   $(".lc-review", el).onclick = () => openSuggestions(data, (d) => { paintSuggestionsBanner(el, d, onChange); onChange?.(d); });
 }
 

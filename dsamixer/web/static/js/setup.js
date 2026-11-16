@@ -1,3 +1,4 @@
+import { showTimePlanning } from "./features.js";
 // First-run setup wizard: a full-screen, multi-step dialog shown before the board when the server says
 // setup is needed (GET /api/setup), and again from Settings > "Run setup again".
 // It collects answers, shows a review, then POSTs them to /api/setup (the server builds the config).
@@ -34,19 +35,19 @@ const STEP_VIEWS = [
     ${rerun ? `<div class="banner warn">${icon("alert")}<span>Finishing this replaces your DSA budget, rest days, daily mix, AI template, badge target, LeetCode username and contest weeks. Cards already on the board stay as they are.</span></div>` : ""}
     <ol class="wz-how">
       <li><b>Every morning</b> the board shows a mix of questions from different topics, due reviews, and your course tasks.</li>
-      <li><b>Every evening</b> you tap <em>Close day</em>. What you didn't finish rolls into tomorrow.</li>
+      <li><b>Every evening</b> you tap <b>Close day</b>. What you didn't finish rolls into tomorrow.</li>
       <li><b>Spaced repetition</b> brings solved questions back for review, so they stick.</li>
     </ol>
-    <p class="muted small">Everything stays on this computer. It takes about two minutes.</p>`,
+    <p class="muted small">Your schedule and goals stay editable in Settings.</p>`,
   // 2 Start date
   (a) => `<h2>When does your plan start?</h2>
     <p class="subtle">Weeks run Monday to Sunday. Pick any day and dsaMixer starts week 1 on the Monday of that week.</p>
     <label class="field"><span class="f-label">Start date</span><input type="date" id="wzStart" class="fit" value="${esc(a.start_date)}"></label>
     <p class="muted small" id="wzStartNote"></p>`,
   // 3 DSA
-  (a) => `<h2>Your DSA time</h2>
-    <p class="subtle">How many minutes can you give DSA on a working day, and which days are rest days (no DSA at all)?</p>
-    <label class="field"><span class="f-label">Minutes per working day</span><input type="number" id="wzMin" class="fit" min="15" step="15" value="${a.dsa_minutes}"><span class="f-hint">A Medium takes about 35 minutes, an Easy 20, a Hard 55.</span></label>
+  (a) => `<h2>Your DSA schedule</h2>
+    ${showTimePlanning() ? `<p class="subtle">How many minutes can you give DSA on a working day, and which days are rest days (no DSA at all)?</p>
+    <label class="field"><span class="f-label">Minutes per working day</span><input type="number" id="wzMin" class="fit" min="15" step="15" value="${a.dsa_minutes}"><span class="f-hint">A Medium takes about 35 minutes, an Easy 20, a Hard 55.</span></label>` : ""}
     <div class="field"><span class="f-label">Rest days</span><div class="wz-chips" role="group" aria-label="Rest days">${DAYS.map((d) =>
       `<label class="chip"><input type="checkbox" data-rest="${d}" ${a.rest_days.includes(d) ? "checked" : ""}><span>${DAY_LABEL[d]}</span></label>`).join("")}</div></div>
     <div class="field"><span class="f-label">Daily mix</span>${Segmented("wzMix", [["hme", "Hard + Medium + Easy"], ["me", "Medium + Easy"]], a.mix)}
@@ -89,7 +90,7 @@ const STEP_VIEWS = [
     return `<h2>Review and finish</h2>
       <dl class="wz-review">
         ${row("Starts", `Week 1 on ${fmtDay(mondayOf(a.start_date), LONG_DATE)}`)}
-        ${row("DSA", `${a.dsa_minutes} min on ${work.map((d) => DAY_LABEL[d]).join(", ") || "no days"}${a.rest_days.length ? `; rest ${a.rest_days.map((d) => DAY_LABEL[d]).join(", ")}` : ""}`)}
+        ${row("DSA", `${showTimePlanning() ? `${a.dsa_minutes} min on ` : ""}${work.map((d) => DAY_LABEL[d]).join(", ") || "no days"}${a.rest_days.length ? `; rest ${a.rest_days.map((d) => DAY_LABEL[d]).join(", ")}` : ""}`)}
         ${row("Daily mix", `${a.mix === "me" ? "Medium + Easy" : "Hard + Medium + Easy"} (about ${slotsPerWeek(a)} new questions a week)`)}
         ${row("Course", a.ai.enabled ? `On: classes ${cls}; ${a.ai.homework_hours} h/week of homework` : "Off")}
         ${row("Goal", `${a.knight.badge === "Custom" ? "Rating" : `${esc(a.knight.badge)} (approx.)`} ${a.knight.target_rating} by ${a.knight.deadline ? fmtDay(a.knight.deadline, { day: "numeric", month: "short", year: "numeric" }) : "26 weeks after the start"}`)}
@@ -107,7 +108,7 @@ function readStep(i, a) {
     if (!v) return "Pick a start date.";
     a.start_date = v;
   } else if (i === 2) {
-    const m = +$("#wzMin").value;
+    const m = $("#wzMin") ? +$("#wzMin").value : a.dsa_minutes;
     if (!(m >= 15)) return "Give DSA at least 15 minutes a working day.";
     a.dsa_minutes = m;
     a.rest_days = $$("[data-rest]").filter((c) => c.checked).map((c) => c.dataset.rest);

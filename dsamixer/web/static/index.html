@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>dsaMixer</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%235e6ad2'/%3E%3Ctext x='16' y='22' font-size='16' font-weight='700' text-anchor='middle' fill='white' font-family='sans-serif'%3Ed%3C/text%3E%3C/svg%3E">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230f766e'/%3E%3Ctext x='16' y='22' font-size='16' font-weight='500' text-anchor='middle' fill='white' font-family='sans-serif'%3Ed%3C/text%3E%3C/svg%3E">
   <script>
     // Apply the saved theme and sidebar state before first paint. ?theme=dark|light overrides for this page load only.
     (function () {
@@ -18,6 +18,7 @@
   <link rel="stylesheet" href="/static/css/base.css">
   <link rel="stylesheet" href="/static/css/components.css">
   <link rel="stylesheet" href="/static/css/views.css">
+  <link rel="stylesheet" href="/static/css/today.css">
 </head>
 <body>
   <div class="app" id="app">
@@ -36,7 +37,7 @@
         <a class="sb-item" href="#/questions" data-route="questions"><span data-icon="list"></span><span class="sb-label">Questions</span><kbd class="sb-kbd">6</kbd></a>
         <a class="sb-item" href="#/contests" data-route="contests"><span data-icon="trophy"></span><span class="sb-label">Contests</span><kbd class="sb-kbd">5</kbd></a>
         <div class="sb-group" data-course>Course</div><div class="sb-group-gap" data-course></div>
-        <a class="sb-item" href="#/ai" data-route="ai" data-course><span data-icon="sparkle"></span><span class="sb-label">AI course</span><kbd class="sb-kbd">7</kbd></a>
+        <a class="sb-item" href="#/ai" data-route="ai" data-course><span data-icon="book"></span><span class="sb-label">AI course</span><kbd class="sb-kbd">7</kbd></a>
       </nav>
       <div class="sb-bottom">
         <a class="sb-item" href="#/settings" data-route="settings"><span data-icon="gear"></span><span class="sb-label">Settings</span><kbd class="sb-kbd">8</kbd></a>
@@ -55,7 +56,7 @@
         <button type="button" class="btn btn-ghost btn-md btn-icon menu-btn" id="menuBtn" aria-label="Open navigation"></button>
         <div class="crumbs" id="crumbs"></div>
         <span class="tb-sp"></span>
-        <button type="button" class="search-btn" id="searchBtn" aria-label="Search and commands"><span data-icon="search"></span><span>Search or jump to…</span><kbd>⌘K</kbd></button>
+        <button type="button" class="search-btn" id="searchBtn" aria-label="Search and commands"><span data-icon="search"></span><span>Search commands</span><kbd>⌘K</kbd></button>
       </header>
       <main id="view"></main>
     </div>

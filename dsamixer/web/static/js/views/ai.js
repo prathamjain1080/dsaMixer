@@ -1,3 +1,4 @@
+import { showTimePlanning } from "../features.js";
 // AI course: weekly planner (preview / edit / apply) and the syllabus.
 import { $, $$, esc, fmtDay, hm } from "../util.js";
 import { api } from "../api.js";
@@ -11,10 +12,10 @@ export async function render(root) {
   weekDraft = null;
   root.innerHTML = Toolbar({ title: "AI course", sub: `<span id="weekInfo">Loading…</span>` }) + `<div class="grid">
     ${Widget({ id: "planW", title: "Plan this week's AI work", span: 12, body: `
-      <p class="muted w-lede">Describe everything you need to get done this week: homework, lectures to rewatch, topics to revise. The more detail, the better the tasks. Claude breaks it into 30–90 min tasks and spreads each goal across the week. You review before anything is added.</p>
+      <p class="muted w-lede">Describe everything you need to get done this week: homework, lectures to rewatch, topics to revise. The more detail, the better the tasks. Review the suggested tasks and dates before adding them to your board.</p>
       <div id="weekKeyWarn"></div>
       <textarea id="weekGoals" rows="6" aria-label="Goals for the week" placeholder="HW1: implement a transformer encoder block from scratch in PyTorch, test on toy data, write up results (due Friday)&#10;HW2: fine-tune DistilBERT for sentiment on IMDB, compare 2 learning rates&#10;Rewatch Sunday's lecture on attention, the part about positional encodings&#10;Revise backprop through softmax"></textarea>
-      <div class="btn-row mt-s">${Button({ label: "Break down with AI", icon: "sparkle", kind: "primary", id: "breakdownBtn" })}</div>
+      <div class="btn-row mt-s">${Button({ label: "Plan tasks", icon: "book", kind: "primary", id: "breakdownBtn" })}</div>
       <div id="weekPreview"></div>` })}
     ${Widget({ id: "modulesW", title: "Syllabus", span: 7, body: `<p class="faint small">The first unfinished module is shown on your AI cards. Mark one “in progress” to pin it.</p><div id="modules"></div>` })}
     ${Widget({ id: "importW", title: "Import modules", span: 5, body: `
@@ -70,7 +71,7 @@ async function breakdown() {
     weekDraft = { goals, ...(await api("/ai-week/preview", { method: "POST", body: { goals } })) };
     renderPreview();
   } finally {
-    btn.disabled = false; btn.querySelector(".btn-label").textContent = "Break down with AI";
+    btn.disabled = false; btn.querySelector(".btn-label").textContent = "Plan tasks";
   }
 }
 
@@ -85,7 +86,7 @@ function renderPreview() {
   $("#weekPreview").innerHTML = `
     <div class="preview">
       <p>${esc(d.summary)}</p>
-      <div class="chips-row">${totals}</div>
+      ${showTimePlanning() ? `<div class="chips-row">${totals}</div>` : ""}
       ${Table({
         rows: d.tasks,
         rowAttrs: (_, i) => `data-i="${i}"`,
@@ -93,7 +94,7 @@ function renderPreview() {
           { label: "Day", cls: "shrink", render: (t) => `<select data-f="date" aria-label="Day" class="fit sm">${dayOpt(t.date)}</select>` },
           { label: "Goal", cls: "muted", render: (t) => esc(t.goal) },
           { label: "Task", render: (t) => `<input data-f="title" aria-label="Task" value="${esc(t.title)}" class="sm">` },
-          { label: "Min", cls: "shrink", render: (t) => `<input data-f="minutes" aria-label="Minutes" type="number" min="5" step="5" value="${t.minutes}" class="sm" style="width:76px">` },
+          ...(showTimePlanning() ? [{ label: "Min", cls: "shrink", render: (t) => `<input data-f="minutes" aria-label="Minutes" type="number" min="5" step="5" value="${t.minutes}" class="sm" style="width:76px">` }] : []),
           { label: `<span class="sr-only">Remove</span>`, cls: "shrink", render: (_, i) => IconButton({ icon: "close", label: "Remove task", size: "sm", attrs: { "data-del": i } }) },
         ],
       })}

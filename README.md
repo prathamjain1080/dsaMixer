@@ -41,12 +41,13 @@ Open <http://127.0.0.1:8765>. The first run creates a Python environment in `.ve
 - **A daily board** (To do, In progress, Done) with lanes for DSA, reviews, course work and contests, a timer, and keyboard shortcuts (`?` lists them).
 - **Topic mixing:** every new question on a day comes from a different topic, picked from a weighted rotation over the 13 sections.
 - **Spaced repetition:** solved questions come back after 3, 7, 21 and 45 days (sooner if you needed hints), until they are mastered.
-- **Carry-over:** whatever you didn't finish moves to the next day automatically.
+- **Carry-over:** unfinished work moves to the next day automatically. Missed contests stay on their scheduled date and are marked skipped.
 - **LeetCode contests:** virtual contests in the first weeks, then the live Weekly and Biweekly, with upsolve cards for what you missed. The real contest schedule is synced from LeetCode.
 - **Your LeetCode profile (optional):** add your username and the board shows a profile card, keeps the badge tracker's rating current, logs the contests you take automatically, and offers to mark questions you recently solved on LeetCode. Add friends' usernames for a small leaderboard on the Contests page.
 - **A badge target of your choice:** Knight (~1850), Guardian (~2150) or any rating, with a deadline.
 - **A second track for a course:** class and homework cards from your own schedule, or switched off entirely.
 - **Week, Sprint and Stats views:** the week at a glance, a weekly retro, a heatmap, topic coverage and a projected finish date.
+- **Balance AI week:** in Week, set daily AI quotas, preview moves from overloaded days across the remaining week (including weekends), then apply the schedule.
 - **Optional extras:** a weekly AI planner that breaks your goals into tasks, morning and evening emails, and Claude Code agents that plan and track homework.
 
 ## How it plans your day
@@ -99,6 +100,7 @@ Everything goes through `./run.sh`, which creates `.venv`, installs `requirement
 | `./run.sh notify morning\|evening [--dry-run]` | Send (or preview) the morning plan or the evening reminder. |
 | `./run.sh schedule install\|remove` | macOS only: the board at login, emails at 8:00 and 22:00, homework sync at 14:00 and 21:30. On Linux, use cron ([example](docs/guides/integrations.md#scheduling-the-emails)). |
 | `./run.sh db info` | Which database is in use, with row counts. |
+| `./run.sh db up` / `db down` | Start / stop a local Homebrew Postgres on demand (it won't start at login). `./run.sh` starts it for you when needed. |
 | `./run.sh db copy-from-sqlite [FILE] --yes` | Replace all Postgres data with a SQLite file. |
 | `./run.sh homework week [N]`, `nbscan`, `pdftext`, `apply` | Helpers for the homework agents (JSON). |
 | `./run.sh tickets list\|add\|update` | Read and edit cards from the terminal (JSON). |

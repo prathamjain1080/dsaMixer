@@ -1,4 +1,5 @@
 // Thin fetch wrapper for the FastAPI backend under /api.
+import { setFeatureConfig } from "./features.js";
 import { toast } from "./ui.js";
 
 export async function api(path, opts = {}) {
@@ -13,7 +14,9 @@ export async function api(path, opts = {}) {
     toast(msg);
     throw new Error(msg);
   }
-  return res.json();
+  const data = await res.json();
+  if (path === "/settings") setFeatureConfig(data);
+  return data;
 }
 
 export const patchTicket = (id, body) => api(`/tickets/${id}`, { method: "PATCH", body });

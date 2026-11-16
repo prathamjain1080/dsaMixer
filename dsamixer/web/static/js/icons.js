@@ -1,4 +1,4 @@
-// The one inline-SVG icon set: 24-unit paths drawn at 16px, stroke 1.75, currentColor (styled in base.css).
+// The one inline-SVG icon set: 24-unit paths drawn at 16px, stroke 1.5, currentColor (styled in base.css).
 const ICONS = {
   check: "M5 12.5l4.5 4.5L19 7.5",
   play: "M8 5.5v13l10.5-6.5z",

@@ -10,6 +10,7 @@ from . import db
 WEEKDAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
 
 DEFAULTS = {
+    "time_planning_enabled": False,       # show ticket estimates and daily time goals in the UI
     # None = the Monday of the week you first set the app up (see load()); sprint 1 starts there.
     "start_date": None,
     # Course week N is done in sprint N - offset. 0: your course week 1 is sprint 1.

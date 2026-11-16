@@ -7,6 +7,9 @@ logs/
 # course material and personal homework stay local
 homework/*
 !homework/README.md
+!homework/homework_env.py
+!homework/.env.example
+!homework/requirements.txt
 data/*.pdf
 # your personal config from /setup or config import
 config.local.json

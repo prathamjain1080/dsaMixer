@@ -1,3 +1,4 @@
+import { showTimePlanning } from "./features.js";
 // Card detail slide-over (Today and Week): edit status, minutes, date, note, log fields; timer; delete.
 import { $, esc, fmtDay, hm, LOGGABLE, STATUS_LABEL } from "./util.js";
 import { api, patchTicket } from "./api.js";
@@ -40,7 +41,7 @@ export function openTicketPanel(t, { onChanged, onContestDone, openDay } = {}) {
 
     <section class="so-section"><h3>Details</h3>
       <dl class="props">
-        <dt>Estimate</dt><dd><input type="number" name="est_minutes" min="0" step="5" value="${t.est_minutes ?? ""}" aria-label="Estimate in minutes"></dd>
+        ${showTimePlanning() ? `<dt>Estimate</dt><dd><input type="number" name="est_minutes" min="0" step="5" value="${t.est_minutes ?? ""}" aria-label="Estimate in minutes"></dd>` : ""}
         <dt>Time spent</dt><dd><input type="number" name="minutes_spent" min="0" value="${t.minutes_spent ?? ""}" placeholder="minutes" aria-label="Minutes spent"></dd>
         <dt>Date</dt><dd><input type="date" name="date" value="${esc(t.date)}" aria-label="Move to day" ${t.status === "done" ? "disabled" : ""}></dd>
         ${loggable ? `<dt>Result</dt><dd>${Segmented("result", [["solved", "Solved"], ["hints", "Hints"], ["failed", "Couldn't"]], t.result || "solved", { size: "sm" })}</dd>
@@ -92,7 +93,7 @@ export function openTicketPanel(t, { onChanged, onContestDone, openDay } = {}) {
     const num = (v) => (v === "" || v == null ? null : +v);
     if (d.title.trim() && d.title.trim() !== t.title) body.title = d.title.trim();
     if (d.status !== t.status) body.status = d.status;
-    if (num(d.est_minutes) !== (t.est_minutes ?? null) && d.est_minutes !== "") body.est_minutes = num(d.est_minutes);
+    if (d.est_minutes !== undefined && num(d.est_minutes) !== (t.est_minutes ?? null) && d.est_minutes !== "") body.est_minutes = num(d.est_minutes);
     let spent = num(d.minutes_spent);
     if (body.status === "done" && timer.forTicket(t.id) && spent === (t.minutes_spent ?? null)) spent = timer.totalMinutes(t);
     if (spent !== (t.minutes_spent ?? null)) body.minutes_spent = spent;

@@ -1,3 +1,4 @@
+import { showTimePlanning } from "../features.js";
 // Week: a seven-column planner with per-day meters. Drag a card to another day to reschedule it;
 // click a card for its detail slide-over.
 import { $, $$, today as todayStr, addDays, mondayOf, fmtDay, hm, LANES } from "../util.js";
@@ -5,6 +6,7 @@ import { api, patchTicket } from "../api.js";
 import { icon } from "../ui.js";
 import { setViewKeys } from "../keys.js";
 import { openTicketPanel } from "../ticket-panel.js";
+import { openAIBalance } from "../ai-balance.js";
 import { Toolbar, Button, IconButton, Badge, Meter, Card, toast } from "../components/index.js";
 
 let S = null;
@@ -46,12 +48,16 @@ function paint() {
     lead: IconButton({ icon: "left", label: "Previous week", tip: "Previous week  [", id: "prevWeek", kind: "secondary" }) +
       IconButton({ icon: "right", label: "Next week", tip: "Next week  ]", id: "nextWeek", kind: "secondary" }),
     title: `${range}${thisWeek ? Badge("This week", "accent") : ""}`,
-    sub: `<span>Sprint ${w.sprint}</span><span class="faint">·</span><span>${done}/${all.length} done · ${hm(mins)} planned</span><span class="faint">·</span><span>Drag a card to another day to reschedule it</span>`,
-    actions: thisWeek ? "" : Button({ label: "This week", kind: "ghost", id: "thisWeek", tip: "Jump to this week  ." }),
+    sub: `<span>Sprint ${w.sprint}</span><span class="faint">·</span><span>${done}/${all.length} done${showTimePlanning() ? ` · ${hm(mins)} planned` : ""}</span><span class="faint">·</span><span>Drag a card to another day to reschedule it</span>`,
+    actions: Button({ label: "Balance AI week", id: "balanceAI" }) + (thisWeek ? "" : Button({ label: "This week", kind: "ghost", id: "thisWeek", tip: "Jump to this week  ." })),
   }) + `<div class="week-grid">${w.days.map(dayHtml).join("")}</div>`;
   $("#prevWeek", S.root).onclick = () => goWeek(addDays(S.monday, -7));
   $("#nextWeek", S.root).onclick = () => goWeek(addDays(S.monday, 7));
   $("#thisWeek", S.root)?.addEventListener("click", () => goWeek(todayStr()));
+  $("#balanceAI", S.root).onclick = () => openAIBalance({ ...w, today: todayStr() }, async () => {
+    if (S) await load();
+    document.dispatchEvent(new Event("dsm:changed"));
+  });
 }
 
 function dayHtml(d) {
@@ -64,11 +70,11 @@ function dayHtml(d) {
       <span class="wd-name">${fmtDay(d.date, { weekday: "short" })}</span><span class="wd-date">${fmtDay(d.date, { day: "numeric" })}</span>
       <span class="wd-badges">${d.is_buffer ? Badge("Buffer", "outline") : ""}${d.closed ? `<span class="wd-closed" aria-label="Day closed" data-tip="Day closed">${icon("check")}</span>` : ""}${d.tickets.length ? `<span class="wd-count">${done}/${d.tickets.length}</span>` : ""}</span>
     </a>
-    <div class="wd-meters">
+    ${showTimePlanning() ? `<div class="wd-meters">
       ${Meter({ label: "DSA", used: d.minutes.dsa, cap: d.dsa_budget, color: "var(--k-dsa)", compact: true })}
       ${Meter({ label: "AI", used: d.minutes.ai, cap: d.ai_capacity, color: "var(--k-ai)", compact: true })}
       ${d.minutes.other ? `<div class="wd-other"><span>Contest & other</span><b>${hm(d.minutes.other)}</b></div>` : ""}
-    </div>
+    </div>` : ""}
     <div class="wd-body">${note}${lanes.map(([l, ts]) => `<div class="wd-lane">${l.name}</div>${ts.map((t) => Card(t, { compact: true, draggable: t.status !== "done" })).join("")}`).join("")}<div class="wd-drop">Move here</div></div>
   </section>`;
 }

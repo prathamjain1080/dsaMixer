@@ -91,3 +91,5 @@ See [homework-agents.md](homework-agents.md). They need the [Claude Code](https:
 ## Postgres instead of SQLite
 
 Only if you want it. Create a database and set `DATABASE_URL=postgresql://USER:PASSWORD@localhost:5432/dsamixer` in `.env`. The tables are created on first start. To move an existing SQLite history across: `./run.sh db copy-from-sqlite --yes` (this replaces everything in Postgres). Check with `./run.sh db info`.
+
+On a Mac with Homebrew Postgres you don't need it running all the time: `./run.sh db down` stops it, and `./run.sh` (or `./run.sh db up`) starts it again only when you open the board. It doesn't start at login, which saves memory. On other setups, start Postgres yourself; set `DSAMIXER_PG_FORMULA` to pick a specific `postgresql@N`.

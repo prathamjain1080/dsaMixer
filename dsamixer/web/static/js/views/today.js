@@ -1,6 +1,7 @@
+import { showTimePlanning } from "../features.js";
 // Today: a customizable widget grid. Now (card + timer), day meters, swimlane board with inline composer,
 // badge tracker / LeetCode profile / progress / homework / heatmap widgets. Card detail and close day are slide-overs.
-import { $, $$, esc, today as todayStr, addDays, fmtDay, hm, LOGGABLE, STATUSES, STATUS_LABEL, LANES, shared, lsGet, lsSet } from "../util.js";
+import { $, $$, esc, questionTitle, today as todayStr, addDays, fmtDay, hm, LOGGABLE, STATUSES, STATUS_LABEL, LANES, shared, lsGet, lsSet } from "../util.js";
 import { api, patchTicket } from "../api.js";
 import { icon, openModal, openPopover } from "../ui.js";
 import { setViewKeys } from "../keys.js";
@@ -28,6 +29,7 @@ const DEFS = [
 ];
 
 export async function render(root, arg) {
+  root.classList.add("today-view");
   S = {
     root, date: /^\d{4}-\d\d-\d\d$/.test(arg || "") ? arg : todayStr(), board: null, cap: 0, stats: null, contests: null,
     sel: null, skippedOpen: lsGet("dsm.skippedOpen") === "1", collapsed: new Set(), offs: [],
@@ -108,7 +110,7 @@ function paintHead() {
     lead: IconButton({ icon: "left", label: "Previous day", tip: "Previous day  [", id: "prevDay", kind: "secondary" }) +
       IconButton({ icon: "right", label: "Next day", tip: "Next day  ]", id: "nextDay", kind: "secondary" }),
     title: `${fmtDay(b.date)}${isToday ? Badge("Today", "accent") : ""}`,
-    sub: `<span>Sprint ${b.sprint}</span><span class="faint">·</span><span>${b.tickets.length} card${b.tickets.length === 1 ? "" : "s"} · ${hm(planned)} planned</span>${b.is_buffer ? Badge("Buffer day", "warn", `data-tip="Catch-all day: no new questions, contest and retro"`) : ""}${closed ? Badge(`${icon("check")}Closed`, "ok") : ""}`,
+    sub: `<span>Sprint ${b.sprint}</span><span class="faint">·</span><span>${b.tickets.length} card${b.tickets.length === 1 ? "" : "s"}${showTimePlanning() ? ` · ${hm(planned)} planned` : ""}</span>${b.is_buffer ? Badge("Buffer day", "warn", `data-tip="Catch-all day: no new questions, contest and retro"`) : ""}${closed ? Badge(`${icon("check")}Closed`, "ok") : ""}`,
     actions: (isToday ? "" : Button({ label: "Today", kind: "ghost", id: "todayBtn", tip: "Jump to today  ." })) +
       `<span id="dashCtl" class="btn-row"></span><span class="vsep"></span>` +
       Button({ label: "Pull question", icon: "pull", id: "pullBtn", kbd: "P", tip: "Finished early? Add the next question" }) +
@@ -127,14 +129,17 @@ function paintMeters() {
   if (!el) return;
   const ts = S.board.tickets.filter((t) => t.status !== "skipped");
   const sum = (f) => ts.filter(f).reduce((s, t) => s + t.est_minutes, 0);
-  const done = S.board.tickets.filter((t) => t.status === "done").length, total = S.board.tickets.length;
+  const done = ts.filter((t) => t.status === "done").length, total = ts.length;
+  const remaining = ts.filter((t) => t.status === "todo" || t.status === "doing").length;
+  const skipped = S.board.tickets.length - total;
+  const pct = total ? Math.round(done / total * 100) : 0;
   const spent = S.board.tickets.reduce((s, t) => s + (t.minutes_spent || 0), 0);
-  el.innerHTML = `<div class="load-top">${ProgressRing({ value: done, max: total || 1, size: 52, stroke: 5, center: `<b class="ring-num">${total ? Math.round((done / total) * 100) : 0}%</b>`, label: `${done} of ${total} done` })}
-      <div><div class="load-big">${done}<span class="faint"> / ${total}</span></div><div class="muted small">cards done · ${hm(spent)} logged</div></div></div>
+  el.innerHTML = `<div class="load-top"><div class="load-big">${done}<span class="load-total"> / ${total}</span></div><span class="muted">cards done</span></div>
+    <div class="load-progress" role="progressbar" aria-label="Daily completion" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}" aria-valuetext="${done} of ${total} cards done"><i style="transform:scaleX(${pct / 100})"></i></div>
+    <div class="load-summary"><span>${remaining ? `${remaining} card${remaining === 1 ? "" : "s"} remaining` : total ? "All cards complete" : skipped ? "No active cards" : "No cards planned"}${skipped ? ` · ${skipped} skipped` : ""}</span><span>${hm(spent)} logged</span></div>
     <div class="load-meters">
-      ${Meter({ label: "DSA", used: sum((t) => LOGGABLE.includes(t.kind)), cap: S.board.dsa_budget, color: "var(--k-dsa)" })}
-      ${Meter({ label: "AI course", used: sum((t) => t.kind === "ai"), cap: S.cap, color: "var(--k-ai)" })}
-      ${Meter({ label: "Done", used: done, cap: total, color: "var(--accent)", unit: (n) => n })}
+      ${showTimePlanning() ? Meter({ label: "DSA", used: sum((t) => LOGGABLE.includes(t.kind)), cap: S.board.dsa_budget, color: "var(--k-dsa)" }) : ""}
+      ${showTimePlanning() ? Meter({ label: "AI course", used: sum((t) => t.kind === "ai"), cap: S.cap, color: "var(--k-ai)" }) : ""}
     </div>`;
 }
 
@@ -161,7 +166,7 @@ function paintNow() {
   if (!t) {
     const any = S.board.tickets.length;
     el.innerHTML = EmptyState({
-      icon: any ? "sparkle" : "inbox",
+      icon: any ? "check" : "inbox",
       title: any ? "Everything on this board is handled" : "Nothing on this board yet",
       hint: any ? "Pull another question if you have energy left, or close the day." : "Add a card in the To do column or pull the next question.",
       action: Button({ label: "Pull next question", icon: "pull", size: "sm", attrs: { "data-act": "pull" } }) + " " + (any ? Button({ label: "Close day", kind: "primary", size: "sm", attrs: { "data-act": "close" } }) : ""),
@@ -172,18 +177,18 @@ function paintNow() {
   }
   const tm = timer.forTicket(t.id), running = timer.isRunning(t.id);
   const elapsedMin = (t.minutes_spent && !tm ? t.minutes_spent : (tm ? tm.baseMinutes : 0) + timer.elapsedMs(tm) / 6e4);
-  el.innerHTML = `<div class="now k-${t.kind}" data-id="${t.id}">
+  el.innerHTML = `<div class="now k-${t.kind}${showTimePlanning() ? " has-estimate" : ""}" data-id="${t.id}">
     <div class="now-main">
       <div class="now-top">${KindBadge(t.kind)}<span class="c-id">#${t.id}</span>${DiffPill(t.difficulty)}${CarriedBadge(t.carried)}${StatusPill(t.status)}</div>
-      <h2 class="now-title">${esc(t.title)}</h2>
+      <h2 class="now-title">${questionTitle(t.title)}</h2>
       ${t.detail || t.pattern ? `<div class="now-detail">${t.detail ? esc(t.detail) : ""}${t.detail && t.pattern ? " · " : ""}${t.pattern ? `Pattern: ${esc(t.pattern)}` : ""}</div>` : ""}
-      <div class="now-meta"><span>${icon("clock")}Estimate ${hm(t.est_minutes)}</span>${t.minutes_spent != null ? `<span>${hm(t.minutes_spent)} logged</span>` : ""}</div>
+      <div class="now-meta">${showTimePlanning() ? `<span>${icon("clock")}Estimate ${hm(t.est_minutes)}</span>` : ""}${t.minutes_spent != null ? `<span>${hm(t.minutes_spent)} logged</span>` : ""}</div>
       <div class="btn-row now-links">${t.url ? Button({ label: "Open on LeetCode", iconRight: "ext", size: "sm", href: t.url, attrs: { target: "_blank", rel: "noopener" } }) : ""}
         ${Button({ label: "Details", size: "sm", kind: "ghost", id: "nowOpen", kbd: "↵" })}</div>
     </div>
     <div class="now-timer">
-      ${ProgressRing({ value: elapsedMin, max: t.est_minutes || 1, size: 148, stroke: 6, id: "nowRing", color: running ? "var(--accent)" : "var(--faint)",
-        center: `<div><div class="clock ${running ? "running" : ""}" id="nowClock" role="timer" aria-label="Elapsed time">${timer.clockText(tm)}</div><div class="clock-label">${running ? "Running" : tm ? "Paused" : `of ${hm(t.est_minutes)}`}</div></div>`, label: "Time against estimate" })}
+      ${ProgressRing({ value: showTimePlanning() ? elapsedMin : 0, max: t.est_minutes || 1, size: 104, stroke: 4, id: "nowRing", color: running ? "var(--accent)" : "var(--faint)",
+        center: `<div><div class="clock ${running ? "running" : ""}" id="nowClock" role="timer" aria-label="Elapsed time">${timer.clockText(tm)}</div><div class="clock-label">${running ? "Running" : tm ? "Paused" : showTimePlanning() ? `of ${hm(t.est_minutes)}` : "Elapsed"}</div></div>`, label: showTimePlanning() ? "Time against estimate" : "Elapsed time" })}
       <div class="timer-btns">
         ${Button({ label: running ? "Pause" : tm ? "Resume" : "Start", icon: running ? "pause" : "play", kind: "primary", id: "nowToggle", tip: "Start / pause  Space" })}
         ${Button({ label: "Done", icon: "check", id: "nowDone", tip: "Mark done  X" })}
@@ -202,7 +207,7 @@ function tickClock() {
   const t = nowTicket();
   const tm = t && timer.forTicket(t.id);
   el.textContent = t ? timer.clockText(tm) : "00:00";
-  if (tm) setRing($("#nowRing"), tm.baseMinutes + timer.elapsedMs(tm) / 6e4, t.est_minutes || 1);
+  if (tm && showTimePlanning()) setRing($("#nowRing"), tm.baseMinutes + timer.elapsedMs(tm) / 6e4, t.est_minutes || 1);
 }
 
 const DROP_HINT = { todo: "Drop to queue", doing: "Drop to start", done: "Drop to finish", skipped: "Drop to skip" };
@@ -220,9 +225,9 @@ function paintBoard() {
       <button type="button" class="b-col skip-toggle" id="skipToggle" aria-expanded="${S.skippedOpen}" data-tip="${S.skippedOpen ? "Collapse" : "Expand"} skipped">${StatusPill("skipped")}<span class="b-count">${cnt("skipped")}</span>${icon(S.skippedOpen ? "left" : "right")}</button>
     </div>
     <form class="composer" id="composer" autocomplete="off">
-      ${icon("plus")}<input id="cTitle" name="title" placeholder="Add a card to To do…" aria-label="New card title" required>
+      ${icon("plus")}<input id="cTitle" name="title" placeholder="Add a task…" aria-label="New card title" required>
       <select name="kind" aria-label="Type"><option value="custom">Task</option><option value="ai">AI</option><option value="dsa">DSA</option><option value="contest">Contest</option></select>
-      <input name="est_minutes" type="number" min="5" step="5" value="30" aria-label="Estimate in minutes"><span class="muted small c-unit">min</span>
+      ${showTimePlanning() ? `<input name="est_minutes" type="number" min="5" step="5" value="30" aria-label="Estimate in minutes"><span class="muted small c-unit">min</span>` : ""}
       <kbd class="c-enter">↵</kbd>
     </form>
     ${lanes.map((l) => {
@@ -230,7 +235,7 @@ function paintBoard() {
       const closed = S.collapsed.has(l.id);
       return `<section class="lane ${closed ? "collapsed" : ""}" data-lane="${l.id}">
         <button type="button" class="lane-head" data-lane-toggle="${l.id}" aria-expanded="${!closed}"><span class="chev">${icon("chev")}</span>${TrackDot(l.kinds[0])}<span class="lane-name">${l.name}</span>
-          <span class="lane-count">${lt.length}</span><span class="lane-mins">${hm(mins)} planned</span></button>
+          <span class="lane-count">${lt.length}</span>${showTimePlanning() ? `<span class="lane-mins">${hm(mins)} planned</span>` : ""}</button>
         ${closed ? "" : `<div class="cells">${STATUSES.map((s) => {
           const cs = lt.filter((t) => t.status === s);
           return `<div class="cell ${cs.length ? "" : "none"}" data-lane="${l.id}" data-status="${s}" data-label="${STATUS_LABEL[s]}">${s === "skipped" && !S.skippedOpen
@@ -249,7 +254,7 @@ function bindBoard(host) {
     e.preventDefault();
     const f = e.target, title = f.title.value.trim();
     if (!title) return;
-    S.board = await api("/tickets", { method: "POST", body: { date: S.date, title, kind: f.kind.value, est_minutes: +f.est_minutes.value || 30 } });
+    S.board = await api("/tickets", { method: "POST", body: { date: S.date, title, kind: f.kind.value, est_minutes: +f.est_minutes?.value || 30 } });
     paintAll(); paintHead();
     const i = $("#cTitle"); if (i) i.focus();
     toast("Card added");
@@ -386,7 +391,7 @@ function logContest(t) {
 /** The quick log for the drag-to-Done moment: result, minutes, confidence, note. Spaced repetition depends on it. */
 function quickLog(t, anchor) {
   const loggable = LOGGABLE.includes(t.kind), ai = t.kind === "ai", prev = t.status;
-  const mins = timer.totalMinutes(t) ?? t.minutes_spent ?? t.est_minutes;
+  const mins = timer.totalMinutes(t) ?? t.minutes_spent ?? (showTimePlanning() ? t.est_minutes : "");
   openPopover(anchor || $("#wb-now") || document.body, `
     <h3 class="ql-title">${icon("check")} Log · ${esc(t.title)}</h3>
     ${loggable ? `<label class="field"><span class="f-label">Result</span>${Segmented("result", [["solved", "Solved"], ["hints", "Hints"], ["failed", "Couldn't"]], t.result || "solved")}</label>
@@ -419,10 +424,10 @@ function addCard() {
     <h2>New card · ${fmtDay(S.date)}</h2>
     <label class="field"><span class="f-label">Title</span><input name="title" required autofocus></label>
     <label class="field"><span class="f-label">Type</span><select name="kind"><option value="custom">Task</option><option value="ai">AI</option><option value="dsa">DSA</option><option value="contest">Contest</option></select></label>
-    <label class="field"><span class="f-label">Estimate (minutes)</span><input type="number" name="est_minutes" value="30" min="5"></label>
+    ${showTimePlanning() ? `<label class="field"><span class="f-label">Estimate (minutes)</span><input type="number" name="est_minutes" value="30" min="5"></label>` : ""}
     <div class="btns"><button type="button" class="btn btn-ghost btn-md" data-act="cancel">Cancel</button><button class="btn btn-primary btn-md">Add</button></div>`,
   async (_, d) => {
-    S.board = await api("/tickets", { method: "POST", body: { date: S.date, title: d.title, kind: d.kind, est_minutes: +d.est_minutes } });
+    S.board = await api("/tickets", { method: "POST", body: { date: S.date, title: d.title, kind: d.kind, est_minutes: +d.est_minutes || 30 } });
     paintAll();
     refresh();
   });

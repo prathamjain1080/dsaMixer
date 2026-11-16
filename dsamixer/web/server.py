@@ -12,7 +12,7 @@ from pydantic import BaseModel
 
 from ..core import config, db
 from ..integrations import ai_planner, leetcode
-from ..planning import planner, stats
+from ..planning import ai_balance, planner, stats
 
 STATIC = Path(__file__).resolve().parent / "static"
 app = FastAPI(title="dsaMixer")
@@ -151,7 +151,32 @@ def get_week(day: str):
         cfg = config.load(c)
         monday = planner.d(day) - timedelta(days=planner.d(day).weekday())
         dates = [(monday + timedelta(days=i)).isoformat() for i in range(7)]
-        return stats.week(c, cfg, day, ai_planner.capacity(cfg, dates))
+        return stats.week(c, cfg, day, ai_balance.quotas(c, cfg, dates))
+
+
+class BalanceAI(BaseModel):
+    quotas: dict[str, int] = {}
+    token: str | None = None
+
+
+@app.post("/api/week/{day}/ai-balance/preview")
+def preview_ai_balance(day: str, body: BalanceAI):
+    with conn() as c:
+        try:
+            return ai_balance.preview(c, day, body.quotas)
+        except ValueError as e:
+            raise HTTPException(400, str(e))
+
+
+@app.post("/api/week/{day}/ai-balance/apply")
+def apply_ai_balance(day: str, body: BalanceAI):
+    if not body.token:
+        raise HTTPException(400, "Preview the balance before applying.")
+    with conn() as c:
+        try:
+            return ai_balance.apply(c, day, body.quotas, body.token)
+        except ValueError as e:
+            raise HTTPException(409, str(e))
 
 
 class CloseDay(BaseModel):
@@ -516,7 +541,7 @@ def get_settings():
 def put_settings(cfg: dict):
     if isinstance(cfg.get("leetcode"), dict):
         cfg["leetcode"] = config.clean_leetcode(cfg["leetcode"])
-    errs = config.validate({k: cfg[k] for k in ("knight", "leetcode") if k in cfg})
+    errs = config.validate({k: cfg[k] for k in ("knight", "leetcode", "time_planning_enabled") if k in cfg})
     if errs:
         raise HTTPException(400, "; ".join(errs))
     with conn() as c:

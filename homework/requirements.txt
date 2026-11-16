@@ -1,0 +1,2 @@
+# Install into each notebook's kernel; course dependencies remain separate.
+python-dotenv>=1.0
